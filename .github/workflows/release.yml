@@ -49,6 +49,8 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools build-tools;34.0.0'
       - run: sdkmanager "ndk;27.0.11902837"
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -81,7 +83,7 @@ jobs:
       - run: npx tauri android build --apk
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
-      - run: cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk LingoCinar-${{ github.ref_name }}.apk
+      - run: cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk LingoCinar.apk
       - uses: softprops/action-gh-release@v2
         with:
-          files: LingoCinar-${{ github.ref_name }}.apk
+          files: LingoCinar.apk
