@@ -33,11 +33,12 @@ header{width:100%;max-width:464px;margin:0 auto;display:flex;justify-content:spa
 .pill{background:var(--secondary);color:#fff;border:2px solid var(--ink);border-radius:9999px;padding:2px 12px;font-size:12px;font-weight:900;text-transform:uppercase;box-shadow:var(--sh-1)}
 .score{padding:6px 12px;font-family:var(--mono)}
 main{width:100%;max-width:464px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;gap:12px;flex:1}
-.timer{height:18px;border:2px solid var(--ink);border-radius:9999px;background:#fff;overflow:hidden}
-.timer i{display:block;height:100%;width:100%;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#25a06d 6px 12px);transition:width 1s linear}
-.board{display:grid;gap:8px;justify-content:center;margin:12px 0}
-.row{display:grid;grid-template-columns:repeat(5,56px);gap:8px}
-.tile{height:56px;display:grid;place-items:center;font-size:28px;font-weight:900;border:2px dashed #94a3b8;border-radius:var(--r-md);background:#f8fafc}
+.timer{position:relative;height:22px;border:2px solid var(--ink);border-radius:9999px;background:#fff;overflow:hidden;text-align:center}
+.timer i{position:absolute;left:0;top:0;height:100%;width:100%;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#25a06d 6px 12px);transition:width 1s linear}
+.timer b{position:relative;z-index:1;font-size:14px;font-family:var(--mono);font-weight:900;color:var(--text);line-height:18px}
+.board{display:flex;flex-direction:column;gap:6px;align-items:center;margin:12px 0;width:100%}
+.row{display:flex;gap:4px;justify-content:center;width:100%;max-width:380px}
+.tile{flex:1;max-width:56px;aspect-ratio:1;height:auto;display:flex;justify-content:center;align-items:center;font-size:min(7vw,28px);font-weight:900;border:2px dashed #94a3b8;border-radius:var(--r-md);background:#f8fafc}
 .tile.filled,.row.active .tile{border:2px solid var(--ink);background:#fff;box-shadow:var(--sh-1)}
 .tile.hint{color:var(--muted)}
 .tile.correct{background:var(--correct);color:#fff;border:2px solid var(--ink)}
@@ -134,7 +135,7 @@ dialog .answer{display:inline-block;background:var(--cream);border:2px solid var
 <main>
   <div class="teams" id="teams" aria-live="polite"></div>
   <p class="turn" id="turn"></p>
-  <div class="timer" aria-hidden="true"><i id="bar"></i></div>
+  <div class="timer" aria-hidden="true"><i id="bar"></i><b id="timerText"></b></div>
   <div class="board" id="board" role="grid" aria-label="Oyun tahtası"></div>
   <p class="msg" id="msg" role="status"></p>
   <div class="host"><button class="btn" id="skip">Kelimeyi Atla ⏭</button></div>
@@ -219,7 +220,7 @@ function drawTeams() {
 }
 function startClock(sec) {
   clearInterval(tick); timeLeft = timeMax = sec || 1; drawTimer();
-  if (!sec) return;
+  if (!sec) { $("timerText").textContent = ""; return; }
   tick = setInterval(() => { timeLeft--; drawTimer(); if (timeLeft <= 0) fail("Süre doldu!"); }, 1000);
 }
 function stopClock() { clearInterval(tick); tick = null; }
@@ -239,9 +240,12 @@ function newWord() {
   $("ready").showModal();
 }
 function rowHTML() {
-  return `<div class="row" role="row" style="grid-template-columns:repeat(${LEN},56px)">${'<div class="tile" role="gridcell"></div>'.repeat(LEN)}</div>`;
+  return `<div class="row" role="row">${'<div class="tile" role="gridcell"></div>'.repeat(LEN)}</div>`;
 }
-function drawTimer() { $("bar").style.width = (timeLeft / timeMax * 100) + "%"; }
+function drawTimer() { 
+  $("bar").style.width = (timeLeft / timeMax * 100) + "%"; 
+  if (cfg.time) $("timerText").textContent = timeLeft > 0 ? timeLeft + " sn" : "";
+}
 let curTiles = [];
 function rowEl() { return $("board").children[row]; }
 function startRow() {
