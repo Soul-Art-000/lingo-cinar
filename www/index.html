@@ -186,15 +186,20 @@ Mavi Takım</textarea>
 </dialog>
 <script src="words.js"></script>
 <script>
+const up = s => s.toLocaleUpperCase("tr").trim();
+const len = w => [...w].length;
 const EXCLUDE = new Set(["AMCIK","İBNE","KAHPE","OROSPU","ORUSPU","SİKTİR","SİKİŞ","SİKMEK","YARAK","YARRAK","GAVAT","PEZEVENK","OĞLAN","KANCIK","AMINA","GÖTÜNDEN"]);
 EXCLUDE.forEach(w => TDK.delete(w));
+const WORDS_BY_LEN = { 4: [], 5: [], 6: [], 7: [] };
+TDK.forEach(w => {
+  const l = len(w);
+  if (WORDS_BY_LEN[l]) WORDS_BY_LEN[l].push(w);
+});
 // Rules: each word belongs to one team (no stealing). 5 guesses, first letter shown, time limit per guess.
 // Invalid guess (not in TDK, wrong length, repeated) or timeout burns that guess.
 // Host-tunable settings (persisted in localStorage).
 let cfg = {tries: 5, time: 10, points: 25, bonus: 0, first: true, penalty: true, shuffle: false, kbHints: true};
 const ROWS = ["ERTYUIOPĞÜ", "ASDFGHJKLŞİ", "↵ZCVBNMÖÇ⌫"];
-const up = s => s.toLocaleUpperCase("tr").trim();
-const len = w => [...w].length;
 
 // Two-pass Lingo scoring: exact matches first, then present letters limited by remaining counts.
 function evaluate(guess, answer) {
@@ -369,15 +374,41 @@ const FS = "https://firestore.googleapis.com/v1/projects/lingo-cinar-2026/databa
 const nameOk = n => /^[A-Za-zÇĞİÖŞÜçğıöşü0-9 _.-]{2,16}$/.test(n)
   && !/(amk|sik|s1k|yarak|yarrak|orospu|oruspu|piç|pic|göt|got|ibne|kahpe|pezevenk|sikti|siktir|amına|amina|ananu|ananı|anani|fuck|shit|bitch|nigger|dick|pussy|porn|sex|seks|gerizekalı|salak|aptal)/.test(n.toLowerCase())
   && !/(^|[^a-zçğıöşü])(aq|mal)([^a-zçğıöşü]|$)/.test(n.toLowerCase());
-const fsSave = (name, score) => fetch(`${FS}:commit`, {method: "POST", body: JSON.stringify({writes: [{
-  update: {name: `projects/lingo-cinar-2026/databases/(default)/documents/scores/${crypto.randomUUID()}`, fields: {name: {stringValue: name}, score: {integerValue: String(score)}}},
-  updateTransforms: [{fieldPath: "createdAt", setToServerValue: "REQUEST_TIME"}], currentDocument: {exists: false}}]})});
+
+let offlineQueue = [];
+try { offlineQueue = JSON.parse(localStorage.getItem("lingoQueue")) || []; } catch {}
+const saveQueue = () => localStorage.setItem("lingoQueue", JSON.stringify(offlineQueue));
+async function fsSync() {
+  if (!offlineQueue.length) return;
+  const docs = [...offlineQueue];
+  const writes = docs.map(d => ({
+    update: {name: `projects/lingo-cinar-2026/databases/(default)/documents/scores/${d.id}`, fields: {name: {stringValue: d.name}, score: {integerValue: String(d.score)}}},
+    updateTransforms: [{fieldPath: "createdAt", setToServerValue: "REQUEST_TIME"}], currentDocument: {exists: false}
+  }));
+  try {
+    const r = await fetch(`${FS}:commit`, {method: "POST", body: JSON.stringify({writes})});
+    if (r.ok) { offlineQueue = offlineQueue.filter(d => !docs.includes(d)); saveQueue(); }
+  } catch {}
+}
+function fsSave(name, score) {
+  offlineQueue.push({name, score, id: crypto.randomUUID()});
+  saveQueue(); fsSync();
+}
+window.addEventListener("online", fsSync);
+fsSync();
+
+let fsCache = null;
+let fsCacheTime = 0;
 async function fsTop() {
+  const now = Date.now();
+  if (fsCache && now - fsCacheTime < 60000) return fsCache;
   const r = await fetch(`${FS}:runQuery`, {method: "POST", body: JSON.stringify({structuredQuery: {from: [{collectionId: "scores"}],
     orderBy: [{field: {fieldPath: "score"}, direction: "DESCENDING"}], limit: 10}})});
   if (!r.ok) throw r.status;
-  return (await r.json()).filter(x => x.document).map(({document: {fields: f}}) =>
+  fsCache = (await r.json()).filter(x => x.document).map(({document: {fields: f}}) =>
     ({name: f.name.stringValue, score: +f.score.integerValue, date: new Date(f.createdAt.timestampValue).toLocaleDateString("tr")}));
+  fsCacheTime = now;
+  return fsCache;
 }
 async function drawLeaderboard(mark) {
   drawRows(board10(), mark);
@@ -397,7 +428,8 @@ $("modes").addEventListener("click", e => {
   const m = SOLO[k], name = $("soloName").value.trim();
   if (m.ranked && !nameOk(name)) { $("soloName").value = ""; $("soloName").focus(); $("soloName").placeholder = "2–16 harf, uygun bir ad gir!"; return; }
   if (name) localStorage.setItem("lingoName", name);
-  const pool = [...TDK].filter(w => m.lens.includes(len(w)));
+  const pool = [];
+  m.lens.forEach(l => { if (WORDS_BY_LEN[l]) pool.push(...WORDS_BY_LEN[l]); });
   hostCfg ??= cfg; cfg = {...cfg, ...m.cfg, kbHints: true}; soloMode = k;
   words = Array.from({length: m.count}, () => pick(pool));
   teams = [{name: name || "Sen", score: 0}];
