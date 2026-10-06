@@ -357,6 +357,8 @@ function drawSummary() {
 }
 function showScreen(game) {
   $("home").hidden = game; $("game").hidden = !game;
+  $("openSetup").style.display = soloMode && game ? "none" : "";
+  document.querySelector(".host").style.display = soloMode && game ? "none" : "";
   if (!game && hostCfg) { cfg = hostCfg; hostCfg = soloMode = null; }
 }
 function openSettings() { stopClock(); fillForm(); $("setup").showModal(); }
