@@ -241,14 +241,16 @@ function rowHTML() {
   return `<div class="row" role="row" style="grid-template-columns:repeat(${LEN},56px)">${'<div class="tile" role="gridcell"></div>'.repeat(LEN)}</div>`;
 }
 function drawTimer() { $("bar").style.width = (timeLeft / timeMax * 100) + "%"; }
+let curTiles = [];
 function rowEl() { return $("board").children[row]; }
 function startRow() {
   cur = cfg.first ? [known[0]] : [];
   [...$("board").children].forEach((r, i) => r.classList.toggle("active", i === row));
+  curTiles = [...rowEl().children];
   paint(); startClock(cfg.time);
 }
 function paint() {
-  [...rowEl().children].forEach((t, i) => {
+  curTiles.forEach((t, i) => {
     t.textContent = cur[i] || known[i];
     t.classList.toggle("filled", !!cur[i]);
     t.classList.toggle("hint", !cur[i] && !!known[i]);
@@ -270,12 +272,13 @@ function submit() {
   if (invalid) { shake(); return fail(invalid); }
   tried.add(guess);
   const res = evaluate(guess, answer);
-  [...rowEl().children].forEach((t, i) => {
+  curTiles.forEach((t, i) => {
     t.classList.remove("hint", "filled");
     t.style.animationDelay = i * 80 + "ms";
     t.classList.add(res[i], "reveal");
     if (res[i] === "correct") known[i] = cur[i];
-    const key = document.querySelector(`[data-k="${cur[i]}"]`), rank = {absent: 0, present: 1, correct: 2};
+    const key = keyNodes.get(cur[i]), rank = {absent: 0, present: 1, correct: 2};
+    if (!key) return;
     const prev = ["correct", "present", "absent"].find(c => key.classList.contains(c));
     if (cfg.kbHints && (!prev || rank[res[i]] > rank[prev])) { key.classList.remove("correct", "present", "absent"); key.classList.add(res[i]); }
   });
@@ -285,7 +288,7 @@ function submit() {
 // Invalid guess / timeout: the row is crossed out and counts as a used guess.
 function fail(why) {
   if (!cfg.penalty) { msg(why + " Tekrar dene."); cur = cfg.first ? [known[0]] : []; paint(); return startClock(cfg.time); }
-  [...rowEl().children].forEach(t => { t.classList.remove("hint", "filled"); t.classList.add("absent"); t.textContent ||= "✕"; });
+  curTiles.forEach(t => { t.classList.remove("hint", "filled"); t.classList.add("absent"); t.textContent ||= "✕"; });
   next(why + " Bir hak gitti.");
 }
 function next(text) {
@@ -447,8 +450,10 @@ $("showWords").addEventListener("change", e => $("wordsIn").style.webkitTextSecu
 $("openSetup").addEventListener("click", openSettings);
 $("skip").addEventListener("click", () => { if (answer && !over) finish(false, "Sunucu kelimeyi geçti."); });
 
+let keyNodes = new Map();
 $("kb").innerHTML = ROWS.map(r => `<div>${[...r].map(k =>
   `<button class="btn key${"↵⌫".includes(k) ? " wide" : ""}" data-k="${k}" aria-label="${k === "↵" ? "Enter" : k === "⌫" ? "Sil" : k}">${k === "↵" ? "ENTER" : k}</button>`).join("")}</div>`).join("");
+[...$("kb").querySelectorAll(".key")].forEach(k => keyNodes.set(k.dataset.k, k));
 $("kb").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) press(b.dataset.k); });
 document.addEventListener("keydown", e => {
   if (document.querySelector("dialog[open]") || e.ctrlKey || e.metaKey) return;
