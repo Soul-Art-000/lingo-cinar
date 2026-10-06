@@ -190,9 +190,10 @@ Mavi Takım</textarea>
 const up = s => s.toLocaleUpperCase("tr").trim();
 const len = w => [...w].length;
 const EXCLUDE = new Set(["AMCIK","İBNE","KAHPE","OROSPU","ORUSPU","SİKTİR","SİKİŞ","SİKMEK","YARAK","YARRAK","GAVAT","PEZEVENK","OĞLAN","KANCIK","AMINA","GÖTÜNDEN"]);
-EXCLUDE.forEach(w => TDK.delete(w));
+const COMMON_SET = new Set(typeof COMMON !== "undefined" ? COMMON : TDK);
+EXCLUDE.forEach(w => { TDK.delete(w); COMMON_SET.delete(w); });
 const WORDS_BY_LEN = { 4: [], 5: [], 6: [], 7: [] };
-TDK.forEach(w => {
+COMMON_SET.forEach(w => {
   const l = len(w);
   if (WORDS_BY_LEN[l]) WORDS_BY_LEN[l].push(w);
 });
