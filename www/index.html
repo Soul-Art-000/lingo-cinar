@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Lingo Türkiye — Türkçe Kelime Tahmin Oyunu</title>
 <style>
 @font-face{font-family:Outfit;font-weight:100 900;font-display:swap;src:url(fonts/outfit-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
@@ -18,11 +18,11 @@
   --font:"Outfit",system-ui,sans-serif;--mono:"Space Mono",monospace;
 }
 *{box-sizing:border-box;margin:0}
-body{font-family:var(--font);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+body{font-family:var(--font);color:var(--text);height:100dvh;width:100vw;overflow:hidden;display:flex;flex-direction:column;align-items:center;
   background:radial-gradient(circle at 92% 12%,#cfe6ff 0,transparent 18rem),
              radial-gradient(#cbd5e1 1px,transparent 1.2px) 0 0/24px 24px,
              linear-gradient(135deg,#f8fafc,#e2e8f0 50%,#f1f5f9)}
-button{font:inherit;cursor:pointer;color:inherit}
+button{font:inherit;cursor:pointer;color:inherit;touch-action:manipulation}
 .btn{border:2px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--sh-1);background:#fff;font-weight:900;
   transition:transform 100ms ease-out,box-shadow 100ms ease-out}
 .btn:active{transform:translate(2px,2px);box-shadow:none}
@@ -32,13 +32,13 @@ header{width:100%;max-width:464px;margin:0 auto;display:flex;justify-content:spa
 .logo b{display:grid;place-items:center;width:36px;height:36px;background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--sh-1)}
 .pill{background:var(--secondary);color:#fff;border:2px solid var(--ink);border-radius:9999px;padding:2px 12px;font-size:12px;font-weight:900;text-transform:uppercase;box-shadow:var(--sh-1)}
 .score{padding:6px 12px;font-family:var(--mono)}
-main{width:100%;max-width:464px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;gap:12px;flex:1}
+main{width:100%;max-width:464px;margin:0 auto;padding:0 16px 8px;display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;overflow-x:hidden}
 .timer{position:relative;height:22px;border:2px solid var(--ink);border-radius:9999px;background:#fff;overflow:hidden;text-align:center}
 .timer i{position:absolute;left:0;top:0;height:100%;width:100%;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#25a06d 6px 12px);transition:width 1s linear}
 .timer b{position:relative;z-index:1;font-size:14px;font-family:var(--mono);font-weight:900;color:var(--text);line-height:18px}
 .board{display:flex;flex-direction:column;gap:6px;align-items:center;margin:12px 0;width:100%}
 .row{display:flex;gap:4px;justify-content:center;width:100%;max-width:380px}
-.tile{flex:1;max-width:56px;aspect-ratio:1;height:auto;display:flex;justify-content:center;align-items:center;font-size:min(7vw,28px);font-weight:900;border:2px dashed #94a3b8;border-radius:var(--r-md);background:#f8fafc}
+.tile{flex:1;max-width:56px;max-height:8dvh;aspect-ratio:1;height:auto;display:flex;justify-content:center;align-items:center;font-size:min(7vw,28px);font-weight:900;border:2px dashed #94a3b8;border-radius:var(--r-md);background:#f8fafc}
 .tile.filled,.row.active .tile{border:2px solid var(--ink);background:#fff;box-shadow:var(--sh-1)}
 .tile.hint{color:var(--muted)}
 .tile.correct{background:var(--correct);color:#fff;border:2px solid var(--ink)}
@@ -49,13 +49,13 @@ main{width:100%;max-width:464px;margin:0 auto;padding:0 16px;display:flex;flex-d
 .row.shake{animation:shake 300ms}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .msg{min-height:24px;text-align:center;font-weight:900;font-size:14px}
-.kb{width:100%;max-width:640px;margin:auto auto 0;padding:12px 8px 20px;display:flex;flex-direction:column;gap:8px;
+.kb{width:100%;max-width:640px;margin:auto auto 0;padding:8px 6px 12px;display:flex;flex-direction:column;gap:6px;
   background:linear-gradient(#f1f5f9,#e2e8f0);border-top:2px solid #cbd5e1}
-.kb div{display:flex;justify-content:center;gap:6px}
-.key{flex:1;max-width:48px;height:52px;background:var(--key);color:#fff;font-size:18px}
-.key.wide{max-width:76px;font-size:13px}
+.kb div{display:flex;justify-content:center;gap:4px}
+.key{flex:1;max-width:48px;height:min(7dvh,52px);background:var(--key);color:#fff;font-size:min(4.5vw,18px)}
+.key.wide{max-width:76px;font-size:min(3.5vw,13px)}
 .key.correct{background:var(--correct)}.key.present{background:var(--present)}.key.absent{background:#cbd5e1;color:#64748b}
-dialog{margin:auto;border:2px solid var(--ink);border-radius:var(--r-lg);box-shadow:8px 8px 0 0 var(--ink);padding:0;width:min(92vw,400px);overflow:hidden;text-align:center}
+dialog{margin:auto;border:2px solid var(--ink);border-radius:var(--r-lg);box-shadow:8px 8px 0 0 var(--ink);padding:0;width:min(92vw,400px);max-height:95dvh;overflow-y:auto;text-align:center}
 dialog::backdrop{background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
 dialog h2{background:var(--yellow);border-bottom:2px solid var(--ink);padding:24px 16px;font-size:24px;font-weight:900}
 dialog p{padding:16px;font-weight:700;color:#334155}
@@ -77,8 +77,8 @@ dialog .answer{display:inline-block;background:var(--cream);border:2px solid var
 [hidden]{display:none!important}
 .icon{width:44px;height:44px;display:grid;place-items:center;padding:0;border-radius:var(--r-md);box-shadow:var(--sh-2)}
 .icon svg{width:24px;height:24px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-#game{width:100%;display:flex;flex-direction:column;flex:1}
-.home{flex:1;width:100%;max-width:464px;margin:0 auto;padding:48px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center}
+#game{width:100%;display:flex;flex-direction:column;flex:1;overflow:hidden}
+.home{flex:1;width:100%;max-width:464px;margin:0 auto;padding:48px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;overflow-y:auto}
 .home h1{font-size:36px;font-weight:900;line-height:40px}
 .home h1.tr{color:var(--green);letter-spacing:.3em;margin-right:-.3em}
 .home .sub{color:var(--muted);font-weight:700}
