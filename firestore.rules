@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Public, unauthenticated leaderboard. Only `scores` is reachable; everything else is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Name: 2..16 allowed chars, no profanity. 'aq' and 'mal' are whole-word only
+    // (so 'Kemal', 'Aqua' pass); the other stems match anywhere in the name.
+    function isCleanName(n) {
+      return n is string
+        && n.matches('^[A-Za-zÇĞİÖŞÜçğıöşü0-9 _.-]{2,16}$')
+        && !n.lower().matches('.*(amk|sik|s1k|yarak|yarrak|orospu|oruspu|piç|pic|göt|got|ibne|kahpe|pezevenk|sikti|siktir|amına|amina|ananu|ananı|anani|fuck|shit|bitch|nigger|dick|pussy|porn|sex|seks|gerizekalı|salak|aptal).*')
+        && !n.lower().matches('(.*[^a-zçğıöşü])?(aq|mal)([^a-zçğıöşü].*)?');
+    }
+
+    function isValidScore(d) {
+      return d.keys().hasAll(['name', 'score', 'createdAt'])
+        && d.keys().hasOnly(['name', 'score', 'createdAt'])
+        && isCleanName(d.name)
+        && d.score is int && d.score >= 0 && d.score <= 1800
+        && d.createdAt is timestamp && d.createdAt == request.time;
+    }
+
+    match /scores/{scoreId} {
+      allow create: if isValidScore(request.resource.data);
+      // Only small queries (top-10 via orderBy score desc limit 10).
+      allow list: if request.query.limit <= 10;
+      allow get, update, delete: if false;
+    }
+  }
+}

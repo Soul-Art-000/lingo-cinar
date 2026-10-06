@@ -1,0 +1,87 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            args: --target universal-apple-darwin
+          - os: windows-latest
+            args: ''
+          - os: ubuntu-22.04
+            args: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: install dependencies (ubuntu only)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Lingo Çınar ${{ github.ref_name }}
+          releaseDraft: false
+          args: ${{ matrix.args }}
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "ndk;27.0.11902837"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+      - run: npm ci && npx tauri android init --ci
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
+      - name: Signing (https://v2.tauri.app/distribute/sign/android/)
+        working-directory: src-tauri/gen/android
+        run: |
+          echo "${{ secrets.ANDROID_KEY_BASE64 }}" | base64 -d > $RUNNER_TEMP/upload.jks
+          printf 'keyAlias=%s\npassword=%s\nstoreFile=%s\n' "${{ secrets.ANDROID_KEY_ALIAS }}" "${{ secrets.ANDROID_KEY_PASSWORD }}" "$RUNNER_TEMP/upload.jks" > keystore.properties
+          python3 - <<'EOF'
+          p = 'app/build.gradle.kts'; s = open(p).read()
+          s = 'import java.io.FileInputStream\n' + s
+          s = s.replace('    buildTypes {', '''    signingConfigs {
+                  create("release") {
+                      val keystoreProperties = Properties()
+                      keystoreProperties.load(FileInputStream(rootProject.file("keystore.properties")))
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["password"] as String
+                      storeFile = file(keystoreProperties["storeFile"] as String)
+                      storePassword = keystoreProperties["password"] as String
+                  }
+              }
+              buildTypes {''', 1)
+          s = s.replace('getByName("release") {', 'getByName("release") {\n            signingConfig = signingConfigs.getByName("release")', 1)
+          open(p, 'w').write(s)
+          EOF
+      - run: npx tauri android build --apk
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
+      - run: cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk LingoCinar-${{ github.ref_name }}.apk
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: LingoCinar-${{ github.ref_name }}.apk

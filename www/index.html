@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lingo Türkiye — Türkçe Kelime Tahmin Oyunu</title>
+<style>
+@font-face{font-family:Outfit;font-weight:100 900;font-display:swap;src:url(fonts/outfit-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Outfit;font-weight:100 900;font-display:swap;src:url(fonts/outfit-latin-ext.woff2) format("woff2");unicode-range:U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1EFF,U+20A0-20C0,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Space Mono";font-weight:700;font-display:swap;src:url(fonts/spacemono-latin.woff2) format("woff2");unicode-range:U+0000-00FF}
+@font-face{font-family:"Space Mono";font-weight:700;font-display:swap;src:url(fonts/spacemono-latin-ext.woff2) format("woff2");unicode-range:U+0100-02AF}
+:root{
+  --primary:#7f5af0;--secondary:#3da9fc;--accent:#ff90e8;--yellow:#ffde59;--green:#2cb67d;--red:#f45d48;--cream:#fff4e5;
+  --ink:#000;--text:#0f172a;--muted:#64748b;
+  --correct:#16a34a;--present:#ca8a04;--absent:#9ca3af;--key:#4b4b4b;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;
+  --sh-1:2px 2px 0 0 var(--ink);--sh-2:3px 3px 0 0 var(--ink);--sh-3:4px 4px 0 0 var(--ink);
+  --font:"Outfit",system-ui,sans-serif;--mono:"Space Mono",monospace;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:var(--font);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;align-items:center;
+  background:radial-gradient(circle at 92% 12%,#cfe6ff 0,transparent 18rem),
+             radial-gradient(#cbd5e1 1px,transparent 1.2px) 0 0/24px 24px,
+             linear-gradient(135deg,#f8fafc,#e2e8f0 50%,#f1f5f9)}
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{border:2px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--sh-1);background:#fff;font-weight:900;
+  transition:transform 100ms ease-out,box-shadow 100ms ease-out}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.btn:focus-visible{outline:3px solid var(--secondary);outline-offset:2px}
+header{width:100%;max-width:464px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:16px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:20px}
+.logo b{display:grid;place-items:center;width:36px;height:36px;background:var(--red);color:#fff;border:2px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--sh-1)}
+.pill{background:var(--secondary);color:#fff;border:2px solid var(--ink);border-radius:9999px;padding:2px 12px;font-size:12px;font-weight:900;text-transform:uppercase;box-shadow:var(--sh-1)}
+.score{padding:6px 12px;font-family:var(--mono)}
+main{width:100%;max-width:464px;margin:0 auto;padding:0 16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.timer{height:18px;border:2px solid var(--ink);border-radius:9999px;background:#fff;overflow:hidden}
+.timer i{display:block;height:100%;width:100%;background:repeating-linear-gradient(45deg,var(--green) 0 6px,#25a06d 6px 12px);transition:width 1s linear}
+.board{display:grid;gap:8px;justify-content:center;margin:12px 0}
+.row{display:grid;grid-template-columns:repeat(5,56px);gap:8px}
+.tile{height:56px;display:grid;place-items:center;font-size:28px;font-weight:900;border:2px dashed #94a3b8;border-radius:var(--r-md);background:#f8fafc}
+.tile.filled,.row.active .tile{border:2px solid var(--ink);background:#fff;box-shadow:var(--sh-1)}
+.tile.hint{color:var(--muted)}
+.tile.correct{background:var(--correct);color:#fff;border:2px solid var(--ink)}
+.tile.present{background:var(--present);color:#fff;border:2px solid var(--ink);border-radius:50%}
+.tile.absent{background:var(--absent);color:#fff;border:2px solid var(--ink)}
+.tile.reveal{animation:flip 300ms ease-out both}
+@keyframes flip{0%{transform:rotateX(90deg)}100%{transform:none}}
+.row.shake{animation:shake 300ms}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.msg{min-height:24px;text-align:center;font-weight:900;font-size:14px}
+.kb{width:100%;max-width:640px;margin:auto auto 0;padding:12px 8px 20px;display:flex;flex-direction:column;gap:8px;
+  background:linear-gradient(#f1f5f9,#e2e8f0);border-top:2px solid #cbd5e1}
+.kb div{display:flex;justify-content:center;gap:6px}
+.key{flex:1;max-width:48px;height:52px;background:var(--key);color:#fff;font-size:18px}
+.key.wide{max-width:76px;font-size:13px}
+.key.correct{background:var(--correct)}.key.present{background:var(--present)}.key.absent{background:#cbd5e1;color:#64748b}
+dialog{margin:auto;border:2px solid var(--ink);border-radius:var(--r-lg);box-shadow:8px 8px 0 0 var(--ink);padding:0;width:min(92vw,400px);overflow:hidden;text-align:center}
+dialog::backdrop{background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+dialog h2{background:var(--yellow);border-bottom:2px solid var(--ink);padding:24px 16px;font-size:24px;font-weight:900}
+dialog p{padding:16px;font-weight:700;color:#334155}
+dialog .answer{display:inline-block;background:var(--cream);border:2px solid var(--ink);border-radius:var(--r-md);padding:4px 16px;font-size:28px;font-weight:900;letter-spacing:.1em;color:var(--text)}
+.cta{display:block;width:calc(100% - 32px);margin:0 16px 16px;padding:14px;font-size:18px;color:#fff;background:var(--green);border-radius:var(--r-lg);box-shadow:var(--sh-3)}
+.teams{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.team{padding:6px 12px;border:2px solid var(--ink);border-radius:var(--r-md);background:#fff;box-shadow:var(--sh-1);font-weight:900;font-size:14px}
+.team b{font-family:var(--mono);margin-left:6px}
+.team.on{background:var(--yellow);box-shadow:var(--sh-3);transform:translate(-1px,-1px)}
+.turn{text-align:center;font-weight:900;font-size:18px}
+.turn span{color:var(--primary)}
+#setup form{padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left}
+#setup label{font-weight:900;font-size:14px}
+#setup textarea{font:700 16px var(--font);border:2px solid var(--ink);border-radius:var(--r-md);box-shadow:var(--sh-1);padding:8px 12px;resize:vertical;-webkit-text-security:none}
+#setup small{color:var(--muted);font-weight:700}
+#setup .cta{width:100%;margin:0}
+.host{display:flex;gap:8px;justify-content:center}
+.host button{padding:6px 12px;font-size:13px}
+[hidden]{display:none!important}
+.icon{width:44px;height:44px;display:grid;place-items:center;padding:0;border-radius:var(--r-md);box-shadow:var(--sh-2)}
+.icon svg{width:24px;height:24px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+#game{width:100%;display:flex;flex-direction:column;flex:1}
+.home{flex:1;width:100%;max-width:464px;margin:0 auto;padding:48px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center}
+.home h1{font-size:36px;font-weight:900;line-height:40px}
+.home h1.tr{color:var(--green);letter-spacing:.3em;margin-right:-.3em}
+.home .sub{color:var(--muted);font-weight:700}
+.home .cta,.home .ghost{width:100%;margin:0}
+.solo{background:var(--primary);color:#fff}
+#solo{width:min(94vw,480px);max-height:92dvh;overflow:auto}
+.soloBody{padding:16px;display:flex;flex-direction:column;gap:12px;text-align:left}
+.soloBody h3{font-size:16px;font-weight:900}.soloBody small{color:var(--muted);font-weight:700}
+.nameRow{display:flex;flex-direction:column;gap:4px;font-weight:900;font-size:14px}
+.nameRow input{font:700 16px var(--font);border:2px solid var(--ink);border-radius:var(--r-md);box-shadow:var(--sh-1);padding:8px 12px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode{padding:12px;text-align:left;border-radius:var(--r-lg);box-shadow:var(--sh-2);display:flex;flex-direction:column;gap:4px}
+.mode b{font-size:18px}.mode span{font-size:12px;font-weight:700;opacity:.85}
+.mode.kolay{background:var(--green);color:#fff}.mode.orta{background:var(--secondary);color:#fff}
+.mode.zor{background:var(--red);color:#fff}.mode.sirali{background:var(--yellow)}
+.board10{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px;counter-reset:r}
+.board10 li{counter-increment:r;display:flex;gap:8px;align-items:center;background:#fff;border:2px solid var(--ink);border-radius:var(--r-sm);padding:6px 10px;font-weight:700;font-size:14px}
+.board10 li::before{content:counter(r);font:700 13px var(--mono);width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:var(--cream);border:2px solid var(--ink)}
+.board10 li:nth-child(1)::before{background:var(--yellow)}
+.board10 li b{margin-left:auto;font-family:var(--mono)}.board10 li small{color:var(--muted)}
+.board10 li.me{background:var(--cream)}
+.soloBody .ghost{width:100%;margin:0}
+.ghost{padding:14px;font-size:18px;border-radius:var(--r-lg);box-shadow:var(--sh-3)}
+.bigLogo{display:flex;gap:6px}
+.bigLogo b{display:grid;place-items:center;width:52px;height:52px;font-size:28px;color:#fff;border:2px solid var(--ink);border-radius:var(--r-md);box-shadow:var(--sh-2)}
+.bigLogo b:nth-child(1){background:var(--red)}.bigLogo b:nth-child(2){background:var(--yellow);color:var(--text)}.bigLogo b:nth-child(3){background:var(--secondary)}.bigLogo b:nth-child(4){background:var(--green)}.bigLogo b:nth-child(5){background:var(--primary)}
+.summary{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.summary div{background:#fff;border:2px solid var(--ink);border-radius:var(--r-md);box-shadow:var(--sh-1);padding:8px;font-size:12px;font-weight:700;color:var(--muted)}
+.summary b{display:block;font-size:20px;font-weight:900;color:var(--text);font-family:var(--mono)}
+#setup{width:min(94vw,480px);max-height:92dvh;overflow:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid2 label{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.grid2 input{font:900 16px var(--mono);border:2px solid var(--ink);border-radius:var(--r-sm);box-shadow:var(--sh-1);padding:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<section id="home" class="home">
+  <div class="bigLogo" aria-hidden="true"><b>L</b><b>İ</b><b>N</b><b>G</b><b>O</b></div>
+  <h1 class="tr">ÇINAR</h1>
+  <p class="sub">Takımlar arası Türkçe kelime yarışması</p>
+  <div class="summary" id="summary"></div>
+  <button class="btn cta" id="startBtn">▶ Yarışmayı Başlat</button>
+  <button class="btn ghost solo" id="soloBtn">Solo Oyna</button>
+  <button class="btn ghost" id="settingsBtn">⚙ Sunucu Ayarları</button>
+  <p class="msg" id="homeMsg" style="color:var(--red)"></p>
+</section>
+<section id="game" hidden>
+<header>
+  <button class="btn icon" id="homeBtn" aria-label="Ana ekrana dön"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" style="fill:var(--yellow)"/></svg></button>
+  <span class="pill" id="round">Kelime 1</span>
+  <button class="btn icon" id="openSetup" aria-label="Sunucu ayarları"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" style="fill:var(--secondary)"/></svg></button>
+</header>
+<main>
+  <div class="teams" id="teams" aria-live="polite"></div>
+  <p class="turn" id="turn"></p>
+  <div class="timer" aria-hidden="true"><i id="bar"></i></div>
+  <div class="board" id="board" role="grid" aria-label="Oyun tahtası"></div>
+  <p class="msg" id="msg" role="status"></p>
+  <div class="host"><button class="btn" id="skip">Kelimeyi Atla ⏭</button></div>
+</main>
+<div class="kb" id="kb"></div>
+</section>
+<dialog id="setup">
+  <h2>Sunucu Ayarları 🎙️</h2>
+  <form method="dialog" id="setupForm">
+    <label for="teamsIn">Takımlar <small>(her satıra bir takım)</small></label>
+    <textarea id="teamsIn" rows="3">Kırmızı Takım
+Mavi Takım</textarea>
+    <label for="wordsIn">Kelimeler <small>(her satıra bir kelime, 4–7 harf, TDK'da olmalı — zorunlu)</small></label>
+    <textarea id="wordsIn" rows="5" required autocomplete="off" spellcheck="false" style="-webkit-text-security:disc"></textarea>
+    <label><input type="checkbox" id="showWords"> Kelimeleri göster</label>
+    <div class="grid2">
+      <label>Tahmin hakkı<input type="number" id="cfgTries" min="1" max="10" value="5"></label>
+      <label>Tahmin süresi (sn, 0 = süresiz)<input type="number" id="cfgTime" min="0" max="120" value="10"></label>
+      <label>Kelime puanı<input type="number" id="cfgPoints" min="0" max="1000" value="25"></label>
+      <label>Kalan hak başına bonus<input type="number" id="cfgBonus" min="0" max="100" value="0"></label>
+    </div>
+    <label><input type="checkbox" id="cfgFirst" checked> İlk harfi açık ver</label>
+    <label><input type="checkbox" id="cfgPenalty" checked> Geçersiz tahmin / süre aşımı hak yakar</label>
+    <label><input type="checkbox" id="cfgShuffle"> Kelime sırasını karıştır</label>
+    <label><input type="checkbox" id="cfgKbHints" checked> Klavyede harf renklerini göster</label>
+    <p class="msg" id="setupMsg" style="color:var(--red);padding:0"></p>
+    <button class="btn cta">Kaydet</button>
+  </form>
+</dialog>
+<dialog id="solo">
+  <h2>Solo Oyna</h2>
+  <div class="soloBody">
+    <label class="nameRow">Oyuncu adı<input id="soloName" maxlength="16" placeholder="Adını yaz" autocomplete="nickname"></label>
+    <div class="modes" id="modes"></div>
+    <h3>🏆 Sıralama Tablosu <small>(Sıralamalı mod · bu cihaz)</small></h3>
+    <ol class="board10" id="leaderboard"></ol>
+    <button class="btn ghost" id="soloClose">Kapat</button>
+  </div>
+</dialog>
+<dialog id="end">
+  <h2 id="endTitle"></h2>
+  <p>Kelime: <span class="answer" id="endWord"></span><br><br><span id="endText"></span></p>
+  <button class="btn cta" id="next">Sonraki Kelime</button>
+</dialog>
+<dialog id="ready">
+  <h2 id="readyTitle"></h2>
+  <p id="readyText"></p>
+  <button class="btn cta" id="go">Başla ▶</button>
+</dialog>
+<script src="words.js"></script>
+<script>
+const EXCLUDE = new Set(["AMCIK","İBNE","KAHPE","OROSPU","ORUSPU","SİKTİR","SİKİŞ","SİKMEK","YARAK","YARRAK","GAVAT","PEZEVENK","OĞLAN","KANCIK","AMINA","GÖTÜNDEN"]);
+EXCLUDE.forEach(w => TDK.delete(w));
+// Rules: each word belongs to one team (no stealing). 5 guesses, first letter shown, time limit per guess.
+// Invalid guess (not in TDK, wrong length, repeated) or timeout burns that guess.
+// Host-tunable settings (persisted in localStorage).
+let cfg = {tries: 5, time: 10, points: 25, bonus: 0, first: true, penalty: true, shuffle: false, kbHints: true};
+const ROWS = ["ERTYUIOPĞÜ", "ASDFGHJKLŞİ", "↵ZCVBNMÖÇ⌫"];
+const up = s => s.toLocaleUpperCase("tr").trim();
+const len = w => [...w].length;
+
+// Two-pass Lingo scoring: exact matches first, then present letters limited by remaining counts.
+function evaluate(guess, answer) {
+  const g = [...guess], a = [...answer], res = Array(a.length).fill("absent"), left = {};
+  a.forEach((c, i) => g[i] === c ? res[i] = "correct" : left[c] = (left[c] || 0) + 1);
+  g.forEach((c, i) => { if (res[i] !== "correct" && left[c]) { res[i] = "present"; left[c]--; } });
+  return res;
+}
+
+const $ = id => document.getElementById(id);
+let wt = 5, teams = [], words = [], setupWords = [], setupTeams = [], wi = -1, team = 0, answer, LEN, row, cur, known, timeLeft, timeMax, tick, over, tried;
+
+function drawTeams() {
+  $("teams").innerHTML = teams.map((t, i) => `<span class="team${i === team ? " on" : ""}">${t.name}<b>${t.score}</b></span>`).join("");
+  $("turn").innerHTML = over ? "" : `Sıra: <span>${teams[team].name}</span>`;
+}
+function startClock(sec) {
+  clearInterval(tick); timeLeft = timeMax = sec || 1; drawTimer();
+  if (!sec) return;
+  tick = setInterval(() => { timeLeft--; drawTimer(); if (timeLeft <= 0) fail("Süre doldu!"); }, 1000);
+}
+function stopClock() { clearInterval(tick); tick = null; }
+function newWord() {
+  if (++wi >= words.length) return gameOver();
+  answer = words[wi]; LEN = len(answer);
+  team = wi % teams.length; row = 0; over = false; tried = new Set();
+  known = Array(LEN).fill(""); if (cfg.first) known[0] = [...answer][0];
+  $("round").textContent = `Kelime ${wi + 1}/${words.length}`;
+  $("board").innerHTML = Array.from({length: wt = cfg.tries}, rowHTML).join("");
+  document.querySelectorAll(".key").forEach(k => k.classList.remove("correct", "present", "absent"));
+  msg(""); drawTeams(); startRow(); stopClock();
+  timeLeft = timeMax = 1; drawTimer();
+  // Pause at every team change; clock starts only when the host presses "Başla".
+  $("readyTitle").textContent = `Sıra: ${teams[team].name}`;
+  $("readyText").textContent = `${LEN} harfli kelime${cfg.first ? ` · ilk harf "${known[0]}"` : ""} · ${cfg.tries} hak · ${cfg.time ? `tahmin başına ${cfg.time} sn` : "süresiz"}`;
+  $("ready").showModal();
+}
+function rowHTML() {
+  return `<div class="row" role="row" style="grid-template-columns:repeat(${LEN},56px)">${'<div class="tile" role="gridcell"></div>'.repeat(LEN)}</div>`;
+}
+function drawTimer() { $("bar").style.width = (timeLeft / timeMax * 100) + "%"; }
+function rowEl() { return $("board").children[row]; }
+function startRow() {
+  cur = cfg.first ? [known[0]] : [];
+  [...$("board").children].forEach((r, i) => r.classList.toggle("active", i === row));
+  paint(); startClock(cfg.time);
+}
+function paint() {
+  [...rowEl().children].forEach((t, i) => {
+    t.textContent = cur[i] || known[i];
+    t.classList.toggle("filled", !!cur[i]);
+    t.classList.toggle("hint", !cur[i] && !!known[i]);
+  });
+}
+function msg(t) { $("msg").textContent = t; }
+function shake() { const r = rowEl(); r.classList.add("shake"); setTimeout(() => r.classList.remove("shake"), 300); }
+
+function press(k) {
+  if (over || !answer) return;
+  if (k === "⌫") { if (cur.length > (cfg.first ? 1 : 0)) cur.pop(); }
+  else if (k === "↵") return submit();
+  else if (cur.length < LEN && /^[A-ZÇĞIİÖŞÜ]$/.test(k)) cur.push(k);
+  paint();
+}
+function submit() {
+  const guess = cur.join("");
+  const invalid = cur.length < LEN ? `${LEN} harf değil!` : !TDK.has(guess) ? `"${guess}" TDK'da yok!` : tried.has(guess) ? `"${guess}" zaten denendi!` : "";
+  if (invalid) { shake(); return fail(invalid); }
+  tried.add(guess);
+  const res = evaluate(guess, answer);
+  [...rowEl().children].forEach((t, i) => {
+    t.classList.remove("hint", "filled");
+    t.style.animationDelay = i * 80 + "ms";
+    t.classList.add(res[i], "reveal");
+    if (res[i] === "correct") known[i] = cur[i];
+    const key = document.querySelector(`[data-k="${cur[i]}"]`), rank = {absent: 0, present: 1, correct: 2};
+    const prev = ["correct", "present", "absent"].find(c => key.classList.contains(c));
+    if (cfg.kbHints && (!prev || rank[res[i]] > rank[prev])) { key.classList.remove("correct", "present", "absent"); key.classList.add(res[i]); }
+  });
+  if (guess === answer) return finish(true);
+  next("");
+}
+// Invalid guess / timeout: the row is crossed out and counts as a used guess.
+function fail(why) {
+  if (!cfg.penalty) { msg(why + " Tekrar dene."); cur = cfg.first ? [known[0]] : []; paint(); return startClock(cfg.time); }
+  [...rowEl().children].forEach(t => { t.classList.remove("hint", "filled"); t.classList.add("absent"); t.textContent ||= "✕"; });
+  next(why + " Bir hak gitti.");
+}
+function next(text) {
+  if (row + 1 >= wt) return finish(false, "Hakların bitti!");
+  row++; msg(text); startRow();
+}
+function finish(won, why) {
+  over = true; clearInterval(tick);
+  const pts = cfg.points + cfg.bonus * (wt - 1 - row);
+  if (won) teams[team].score += pts;
+  drawTeams();
+  setTimeout(() => {
+    $("endTitle").textContent = won ? `${teams[team].name} bildi! 🎉` : why + " 😅";
+    $("endWord").textContent = answer;
+    $("endText").textContent = won ? `+${pts} puan` : "Bilemedi, puan yok.";
+    $("next").textContent = wi + 1 < words.length ? "Sonraki Kelime" : "Sonuçları Gör";
+    $("end").showModal();
+  }, 600);
+}
+function gameOver() {
+  over = true; answer = null; clearInterval(tick);
+  const top = Math.max(...teams.map(t => t.score)), winners = teams.filter(t => t.score === top).map(t => t.name);
+  drawTeams();
+  $("endTitle").textContent = teams.length === 1 ? "Oyun bitti!" : winners.length > 1 ? "Berabere! 🤝" : `Kazanan: ${winners[0]} 🏆`;
+  $("endWord").textContent = top;
+  $("endText").textContent = teams.map(t => `${t.name}: ${t.score}`).join(" · ");
+  $("next").textContent = soloMode ? "Ana Ekran" : "Yeni Yarışma";
+  if (soloMode && SOLO[soloMode].ranked) {
+    const rows = board10(), entry = {name: teams[0].name, score: teams[0].score, date: new Date().toLocaleDateString("tr")};
+    rows.push(entry); rows.sort((a, b) => b.score - a.score); rows.splice(10);
+    localStorage.setItem("lingoBoard", JSON.stringify(rows));
+    const rank = rows.indexOf(entry);
+    $("endText").textContent = rank >= 0 ? `Sıralamada ${rank + 1}. oldun! 🏆` : "İlk 10'a giremedin, tekrar dene!";
+    fsSave(entry.name, entry.score).catch(() => {}); // offline: local board still has it
+  }
+  $("end").showModal();
+}
+
+// Host settings: words are mandatory and every one is checked against TDK. Saving does not start the game.
+const num = (id, lo, hi) => Math.min(hi, Math.max(lo, parseInt($(id).value) || 0));
+$("setupForm").addEventListener("submit", e => {
+  const names = $("teamsIn").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const list = $("wordsIn").value.split(/[\n,]/).map(up).filter(Boolean);
+  const bad = list.filter(w => !TDK.has(w) || len(w) < 4 || len(w) > 7);
+  const err = !names.length ? "En az bir takım gir." : !list.length ? "En az bir kelime girmelisin." :
+    bad.length ? `Geçersiz (TDK'da yok veya 4–7 harf değil): ${bad.join(", ")}` : "";
+  if (err) { e.preventDefault(); $("setupMsg").textContent = err; return; }
+  setupTeams = names; setupWords = list;
+  cfg = {tries: num("cfgTries", 1, 10), time: num("cfgTime", 0, 120), points: num("cfgPoints", 0, 1000), bonus: num("cfgBonus", 0, 100),
+    first: $("cfgFirst").checked, penalty: $("cfgPenalty").checked, shuffle: $("cfgShuffle").checked, kbHints: $("cfgKbHints").checked};
+  localStorage.setItem("lingo", JSON.stringify({cfg, teams: names, words: list}));
+  $("setupMsg").textContent = ""; $("homeMsg").textContent = ""; drawSummary();
+});
+function fillForm() {
+  $("teamsIn").value = setupTeams.join("\n") || $("teamsIn").value; $("wordsIn").value = setupWords.join("\n");
+  $("cfgTries").value = cfg.tries; $("cfgTime").value = cfg.time; $("cfgPoints").value = cfg.points; $("cfgBonus").value = cfg.bonus;
+  $("cfgFirst").checked = cfg.first; $("cfgPenalty").checked = cfg.penalty; $("cfgShuffle").checked = cfg.shuffle; $("cfgKbHints").checked = cfg.kbHints;
+}
+function drawSummary() {
+  $("summary").innerHTML = `<div><b>${setupTeams.length}</b>takım</div><div><b>${setupWords.length}</b>kelime</div><div><b>${cfg.time || "∞"}</b>${cfg.time ? "sn / tahmin" : "süresiz"}</div>`;
+}
+function showScreen(game) {
+  $("home").hidden = game; $("game").hidden = !game;
+  if (!game && hostCfg) { cfg = hostCfg; hostCfg = soloMode = null; }
+}
+function openSettings() { stopClock(); fillForm(); $("setup").showModal(); }
+$("settingsBtn").addEventListener("click", openSettings);
+$("startBtn").addEventListener("click", () => {
+  if (!setupWords.length || !setupTeams.length) { $("homeMsg").textContent = "Önce Sunucu Ayarları'ndan takımları ve kelimeleri gir."; return openSettings(); }
+  words = cfg.shuffle ? [...setupWords].sort(() => Math.random() - .5) : [...setupWords]; // ponytail: sort-shuffle is slightly biased; fine for a party game
+  teams = setupTeams.map(name => ({name, score: 0}));
+  wi = -1; showScreen(true); newWord();
+});
+// Solo: random TDK words; each mode carries its own rules, host settings are restored afterwards.
+const SOLO = {
+  kolay:  {name: "Kolay", lens: [4],    count: 10, cfg: {tries: 6, time: 0,  points: 10,  bonus: 5,  first: true,  penalty: false}},
+  orta:   {name: "Orta",  lens: [5],    count: 10, cfg: {tries: 5, time: 20, points: 25,  bonus: 10, first: true,  penalty: true}},
+  zor:    {name: "Zor",   lens: [6, 7], count: 10, cfg: {tries: 5, time: 10, points: 50,  bonus: 15, first: false, penalty: true}},
+  sirali: {name: "Sıralamalı", lens: [5], count: 10, ranked: true, cfg: {tries: 5, time: 10, points: 100, bonus: 20, first: true, penalty: true}},
+};
+let hostCfg = null, soloMode = null;
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const board10 = () => { try { return JSON.parse(localStorage.getItem("lingoBoard")) || []; } catch { return []; } };
+// Global top-10 via Firestore REST. Name rules mirror firestore.rules — keep both in sync.
+const FS = "https://firestore.googleapis.com/v1/projects/lingo-cinar-2026/databases/(default)/documents";
+const nameOk = n => /^[A-Za-zÇĞİÖŞÜçğıöşü0-9 _.-]{2,16}$/.test(n)
+  && !/(amk|sik|s1k|yarak|yarrak|orospu|oruspu|piç|pic|göt|got|ibne|kahpe|pezevenk|sikti|siktir|amına|amina|ananu|ananı|anani|fuck|shit|bitch|nigger|dick|pussy|porn|sex|seks|gerizekalı|salak|aptal)/.test(n.toLowerCase())
+  && !/(^|[^a-zçğıöşü])(aq|mal)([^a-zçğıöşü]|$)/.test(n.toLowerCase());
+const fsSave = (name, score) => fetch(`${FS}:commit`, {method: "POST", body: JSON.stringify({writes: [{
+  update: {name: `projects/lingo-cinar-2026/databases/(default)/documents/scores/${crypto.randomUUID()}`, fields: {name: {stringValue: name}, score: {integerValue: String(score)}}},
+  updateTransforms: [{fieldPath: "createdAt", setToServerValue: "REQUEST_TIME"}], currentDocument: {exists: false}}]})});
+async function fsTop() {
+  const r = await fetch(`${FS}:runQuery`, {method: "POST", body: JSON.stringify({structuredQuery: {from: [{collectionId: "scores"}],
+    orderBy: [{field: {fieldPath: "score"}, direction: "DESCENDING"}], limit: 10}})});
+  if (!r.ok) throw r.status;
+  return (await r.json()).filter(x => x.document).map(({document: {fields: f}}) =>
+    ({name: f.name.stringValue, score: +f.score.integerValue, date: new Date(f.createdAt.timestampValue).toLocaleDateString("tr")}));
+}
+async function drawLeaderboard(mark) {
+  drawRows(board10(), mark);
+  try { drawRows(await fsTop()); } catch {} // offline: keep local board
+}
+function drawRows(rows, mark) {
+  $("leaderboard").innerHTML = rows.length ? rows.map((r, i) =>
+    `<li class="${i === mark ? "me" : ""}">${r.name.replace(/</g, "&lt;")} <small>${r.date}</small><b>${r.score}</b></li>`).join("")
+    : "<li>Henüz skor yok — ilk sen ol!</li>";
+}
+$("modes").innerHTML = Object.entries(SOLO).map(([k, m]) => `<button class="btn mode ${k}" data-mode="${k}"><b>${m.name}</b>
+  <span>${m.lens.join("–")} harf · ${m.cfg.tries} hak · ${m.cfg.time ? m.cfg.time + " sn" : "süresiz"}${m.cfg.first ? "" : " · ilk harf yok"}${m.ranked ? " · skor tabloya" : ""}</span></button>`).join("");
+$("soloBtn").addEventListener("click", () => { $("soloName").value = localStorage.getItem("lingoName") || ""; drawLeaderboard(); $("solo").showModal(); });
+$("soloClose").addEventListener("click", () => $("solo").close());
+$("modes").addEventListener("click", e => {
+  const k = e.target.closest("[data-mode]")?.dataset.mode; if (!k) return;
+  const m = SOLO[k], name = $("soloName").value.trim();
+  if (m.ranked && !nameOk(name)) { $("soloName").value = ""; $("soloName").focus(); $("soloName").placeholder = "2–16 harf, uygun bir ad gir!"; return; }
+  if (name) localStorage.setItem("lingoName", name);
+  const pool = [...TDK].filter(w => m.lens.includes(len(w)));
+  hostCfg ??= cfg; cfg = {...cfg, ...m.cfg, kbHints: true}; soloMode = k;
+  words = Array.from({length: m.count}, () => pick(pool));
+  teams = [{name: name || "Sen", score: 0}];
+  $("solo").close(); wi = -1; showScreen(true); newWord();
+});
+$("homeBtn").addEventListener("click", () => {
+  if (answer && !over && window.confirm && !window.confirm("Yarışma bitirilip ana ekrana dönülsün mü?")) return;
+  stopClock(); answer = null; over = true; showScreen(false);
+});
+// Settings changes mid-game apply from the next guess; resume the clock after closing.
+$("setup").addEventListener("close", () => { if (answer && !over && !tick && !$("ready").open && !$("game").hidden) startClock(cfg.time); });
+$("ready").addEventListener("cancel", e => e.preventDefault());
+$("go").addEventListener("click", () => { $("ready").close(); startClock(cfg.time); });
+$("showWords").addEventListener("change", e => $("wordsIn").style.webkitTextSecurity = e.target.checked ? "none" : "disc");
+$("openSetup").addEventListener("click", openSettings);
+$("skip").addEventListener("click", () => { if (answer && !over) finish(false, "Sunucu kelimeyi geçti."); });
+
+$("kb").innerHTML = ROWS.map(r => `<div>${[...r].map(k =>
+  `<button class="btn key${"↵⌫".includes(k) ? " wide" : ""}" data-k="${k}" aria-label="${k === "↵" ? "Enter" : k === "⌫" ? "Sil" : k}">${k === "↵" ? "ENTER" : k}</button>`).join("")}</div>`).join("");
+$("kb").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) press(b.dataset.k); });
+document.addEventListener("keydown", e => {
+  if (document.querySelector("dialog[open]") || e.ctrlKey || e.metaKey) return;
+  if (e.key === "Enter") press("↵"); else if (e.key === "Backspace") press("⌫"); else if (e.key.length === 1) press(up(e.key));
+});
+$("next").addEventListener("click", () => { $("end").close(); answer ? newWord() : showScreen(false); });
+
+// Self-check: open with ?test to run assertions in the console.
+if (location.search.includes("test")) {
+  const eq = (a, b) => console.assert(a.join() === b.join(), a, b);
+  eq(evaluate("KALEM", "KALEM"), ["correct","correct","correct","correct","correct"]);
+  eq(evaluate("AAAAA", "KALEM"), ["absent","correct","absent","absent","absent"]);
+  eq(evaluate("LEMKA", "KALEM"), ["present","present","present","present","present"]);
+  eq(evaluate("KAKAO", "KALEM"), ["correct","correct","absent","absent","absent"]);
+  console.assert(up("i") === "İ" && up("ı") === "I", "tr upper");
+  console.assert(TDK.has("KALEM") && TDK.has("ÇİÇEK") && !TDK.has("XYZAB"), "TDK set");
+  console.log("self-check done");
+}
+try { const saved = JSON.parse(localStorage.getItem("lingo")); if (saved) { cfg = {...cfg, ...saved.cfg}; setupTeams = saved.teams; setupWords = saved.words; } } catch {}
+drawSummary();
+</script>
+</body>
+</html>
