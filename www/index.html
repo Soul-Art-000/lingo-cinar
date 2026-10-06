@@ -210,11 +210,12 @@ function evaluate(guess, answer) {
 }
 
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let wt = 5, teams = [], words = [], setupWords = [], setupTeams = [], wi = -1, team = 0, answer, LEN, row, cur, known, timeLeft, timeMax, tick, over, tried;
 
 function drawTeams() {
-  $("teams").innerHTML = teams.map((t, i) => `<span class="team${i === team ? " on" : ""}">${t.name}<b>${t.score}</b></span>`).join("");
-  $("turn").innerHTML = over ? "" : `Sıra: <span>${teams[team].name}</span>`;
+  $("teams").innerHTML = teams.map((t, i) => `<span class="team${i === team ? " on" : ""}">${esc(t.name)}<b>${t.score}</b></span>`).join("");
+  $("turn").innerHTML = over ? "" : `Sıra: <span>${esc(teams[team].name)}</span>`;
 }
 function startClock(sec) {
   clearInterval(tick); timeLeft = timeMax = sec || 1; drawTimer();
@@ -419,7 +420,7 @@ async function drawLeaderboard(mark) {
 }
 function drawRows(rows, mark) {
   $("leaderboard").innerHTML = rows.length ? rows.map((r, i) =>
-    `<li class="${i === mark ? "me" : ""}">${r.name.replace(/</g, "&lt;")} <small>${r.date}</small><b>${r.score}</b></li>`).join("")
+    `<li class="${i === mark ? "me" : ""}">${esc(r.name)} <small>${r.date}</small><b>${r.score}</b></li>`).join("")
     : "<li>Henüz skor yok — ilk sen ol!</li>";
 }
 $("modes").innerHTML = Object.entries(SOLO).map(([k, m]) => `<button class="btn mode ${k}" data-mode="${k}"><b>${m.name}</b>
