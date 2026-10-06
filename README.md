@@ -5,6 +5,15 @@ Neo-Brutalist tasarımlı, tamamen TDK uyumlu ve "Sıralamalı" mod seçeneği b
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android-green)
 ![Sürüm](https://img.shields.io/github/v/release/Soul-Art-000/lingo-cinar)
 
+<p align="center">
+  <img src="app-icon.png" width="128" alt="Lingo Çınar Logo">
+</p>
+
+<p align="center">
+  <img src="docs/home.png" width="240" alt="Ana Ekran">
+  <img src="docs/game.png" width="240" alt="Oyun İçi">
+</p>
+
 ## 📥 İndir (Tüm Platformlar)
 
 Oyunun tamamen derlenmiş ve yüklenmeye hazır kurulum dosyalarını **[Releases](https://github.com/Soul-Art-000/lingo-cinar/releases/latest)** sayfasından indirebilirsiniz:
