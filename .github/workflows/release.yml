@@ -55,7 +55,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
-      - run: npm ci && npx tauri android init --ci
+      - run: |
+          npm ci
+          npx tauri android init --ci
+          cp -R src-tauri/icons/android/* src-tauri/gen/android/app/src/main/res/
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.11902837
       - name: Signing (https://v2.tauri.app/distribute/sign/android/)
